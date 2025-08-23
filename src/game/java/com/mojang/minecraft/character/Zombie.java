@@ -1,20 +1,22 @@
 package com.mojang.minecraft.character;
 
-import org.lwjgl.opengl.GL11;
-
 import com.mojang.minecraft.Entity;
-import com.mojang.minecraft.Textures;
 import com.mojang.minecraft.level.Level;
+import com.mojang.minecraft.renderer.Textures;
+import org.lwjgl.opengl.GL11;
 
 public class Zombie extends Entity {
 	public float rot;
 	public float timeOffs;
 	public float speed;
-	public float rotA = (float)(Math.random() + 1.0D) * 0.01F;
+	public float rotA;
 	private static ZombieModel zombieModel = new ZombieModel();
+	private Textures textures;
 
-	public Zombie(Level level, float x, float y, float z) {
+	public Zombie(Level level, Textures textures, float x, float y, float z) {
 		super(level);
+		this.textures = textures;
+		this.rotA = (float)(Math.random() + 1.0D) * 0.01F;
 		this.setPos(x, y, z);
 		this.timeOffs = (float)Math.random() * 1239813.0F;
 		this.rot = (float)(Math.random() * Math.PI * 2.0D);
@@ -55,7 +57,7 @@ public class Zombie extends Entity {
 
 	public void render(float a) {
 		GL11.glEnable(GL11.GL_TEXTURE_2D);
-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, Textures.loadTexture("/char.png", GL11.GL_NEAREST));
+		GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.textures.loadTexture("/char.png", GL11.GL_NEAREST));
 		GL11.glPushMatrix();
 		double time = (double)System.nanoTime() / 1.0E9D * 10.0D * (double)this.speed + (double)this.timeOffs;
 		float size = 0.058333334F;

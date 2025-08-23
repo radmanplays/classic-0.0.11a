@@ -7,9 +7,11 @@ import org.lwjgl.opengl.GL11;
 
 import com.mojang.minecraft.HitResult;
 import com.mojang.minecraft.Player;
-import com.mojang.minecraft.Textures;
 import com.mojang.minecraft.level.tile.Tile;
 import com.mojang.minecraft.phys.AABB;
+import com.mojang.minecraft.renderer.Frustum;
+import com.mojang.minecraft.renderer.Tesselator;
+import com.mojang.minecraft.renderer.Textures;
 
 public class LevelRenderer implements LevelListener {
 	public static final int MAX_REBUILDS_PER_FRAME = 8;
@@ -19,9 +21,11 @@ public class LevelRenderer implements LevelListener {
 	private int xChunks;
 	private int yChunks;
 	private int zChunks;
+	private Textures textures;
 
-	public LevelRenderer(Level level) {
+	public LevelRenderer(Level level, Textures textures) {
 		this.level = level;
+		this.textures = textures;
 		level.addListener(this);
 		this.xChunks = level.width / 16;
 		this.yChunks = level.depth / 16;
@@ -72,10 +76,10 @@ public class LevelRenderer implements LevelListener {
 
 		return dirty;
 	}
-
+	
 	public void render(Player player, int layer) {
 		GL11.glEnable(GL11.GL_TEXTURE_2D);
-		int id = Textures.loadTexture("/terrain.png", 9728);
+		int id = this.textures.loadTexture("/terrain.png", 9728);
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, id);
 		Frustum frustum = Frustum.getFrustum();
 
@@ -87,7 +91,7 @@ public class LevelRenderer implements LevelListener {
 
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
 	}
-	
+
 	public void updateDirtyChunks(Player player) {
 		List dirty = this.getAllDirtyChunks();
 		if(dirty != null) {
@@ -100,17 +104,66 @@ public class LevelRenderer implements LevelListener {
 		}
 	}
 
-	public void renderHit(HitResult h) {
+
+	public void renderHit(HitResult h, int mode, int tileType) {
 		Tesselator t = Tesselator.instance;
+		GL11.pushMatrix();
 		GL11.glEnable(GL11.GL_BLEND);
 		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
 		GL11.color(1.0F, 1.0F, 1.0F, ((float)Math.sin((double)System.currentTimeMillis() / 100.0D) * 0.2F + 0.4F) * 0.5F);
-		t.init();
-		Tile.rock.renderFaceNoTexture(t, h.x, h.y, h.z, h.f);
-		t.flush();
-		GL11.glDisable(GL11.GL_BLEND);
-	}
+		if(mode == 0) {
+			t.init();
 
+			for(int br = 0; br < 6; ++br) {
+				Tile.rock.renderFaceNoTexture(t, h.x, h.y, h.z, br);
+			}
+
+			t.flush();
+		} else {
+			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+			float var10 = (float)Math.sin((double)System.currentTimeMillis() / 100.0D) * 0.2F + 0.8F;
+			GL11.color(var10, var10, var10, (float)Math.sin((double)System.currentTimeMillis() / 200.0D) * 0.2F + 0.5F);
+			GL11.glEnable(GL11.GL_TEXTURE_2D);
+			int id = this.textures.loadTexture("/terrain.png", 9728);
+			GL11.glBindTexture(GL11.GL_TEXTURE_2D, id);
+			int x = h.x;
+			int y = h.y;
+			int z = h.z;
+			if(h.f == 0) {
+				--y;
+			}
+
+			if(h.f == 1) {
+				++y;
+			}
+
+			if(h.f == 2) {
+				--z;
+			}
+
+			if(h.f == 3) {
+				++z;
+			}
+
+			if(h.f == 4) {
+				--x;
+			}
+
+			if(h.f == 5) {
+				++x;
+			}
+
+			t.init();
+			Tile.tiles[tileType].render(t, this.level, 0, x, y, z);
+			Tile.tiles[tileType].render(t, this.level, 1, x, y, z);
+			t.flush();
+			GL11.glDisable(GL11.GL_TEXTURE_2D);
+		}
+		GL11.glDisable(GL11.GL_BLEND);
+		GL11.color(1.0F, 1.0F, 1.0F, 1.0F);
+		GL11.popMatrix();
+	}
+	
 	public void setDirty(int x0, int y0, int z0, int x1, int y1, int z1) {
 		x0 /= 16;
 		x1 /= 16;

@@ -3,7 +3,8 @@ package com.mojang.minecraft.level.tile;
 import java.util.Random;
 
 import com.mojang.minecraft.level.Level;
-import com.mojang.minecraft.level.Tesselator;
+import com.mojang.minecraft.renderer.Tesselator;
+import java.util.Random;
 import com.mojang.minecraft.particle.Particle;
 import com.mojang.minecraft.particle.ParticleEngine;
 import com.mojang.minecraft.phys.AABB;

@@ -3,6 +3,7 @@ package com.mojang.minecraft.level;
 import java.util.Comparator;
 
 import com.mojang.minecraft.Player;
+import com.mojang.minecraft.renderer.Frustum;
 
 public class DirtyChunkSorter implements Comparator<Chunk> {
 	private Player player;

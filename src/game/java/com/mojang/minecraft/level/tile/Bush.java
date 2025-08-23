@@ -1,9 +1,12 @@
 package com.mojang.minecraft.level.tile;
 
 import com.mojang.minecraft.level.Level;
-import com.mojang.minecraft.level.Tesselator;
 import com.mojang.minecraft.phys.AABB;
+import com.mojang.minecraft.renderer.Tesselator;
+
 import java.util.Random;
+
+import org.lwjgl.opengl.GL11;
 
 public class Bush extends Tile {
 	protected Bush(int id) {
@@ -21,6 +24,8 @@ public class Bush extends Tile {
 
 	public void render(Tesselator t, Level level, int layer, int x, int y, int z) {
 		if(!(level.isLit(x, y, z) ^ layer != 1)) {
+			GL11.glEnable(GL11.GL_BLEND);
+			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 			int tex = this.getTexture(15);
 			float u0 = (float)(tex % 16) / 16.0F;
 			float u1 = u0 + 0.999F / 16.0F;

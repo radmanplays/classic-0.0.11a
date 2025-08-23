@@ -3,7 +3,7 @@ package net.lax1dude.eaglercraft.internal;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
-import com.mojang.minecraft.RubyDung;
+import com.mojang.minecraft.Minecraft;
 
 import net.lax1dude.eaglercraft.EagRuntime;
 import net.lax1dude.eaglercraft.EagUtils;
@@ -61,7 +61,8 @@ public class LWJGLEntryPoint {
 
 		EagRuntime.create();
 
-		new RubyDung().run();
+		Minecraft minecraft = new Minecraft(854, 480, false);
+		(new Thread(minecraft)).run();
 
 	}
 

@@ -1,4 +1,4 @@
-package com.mojang.minecraft;
+package com.mojang.minecraft.renderer;
 
 import java.util.HashMap;
 

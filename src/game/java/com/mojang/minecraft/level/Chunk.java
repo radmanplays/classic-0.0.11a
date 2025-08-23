@@ -5,6 +5,7 @@ import org.lwjgl.opengl.GL11;
 import com.mojang.minecraft.Player;
 import com.mojang.minecraft.level.tile.Tile;
 import com.mojang.minecraft.phys.AABB;
+import com.mojang.minecraft.renderer.Tesselator;
 
 public class Chunk {
 	public AABB aabb;

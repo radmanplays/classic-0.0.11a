@@ -2,7 +2,7 @@ package com.mojang.minecraft.particle;
 
 import com.mojang.minecraft.Entity;
 import com.mojang.minecraft.level.Level;
-import com.mojang.minecraft.level.Tesselator;
+import com.mojang.minecraft.renderer.Tesselator;
 
 public class Particle extends Entity {
 	private float xd;

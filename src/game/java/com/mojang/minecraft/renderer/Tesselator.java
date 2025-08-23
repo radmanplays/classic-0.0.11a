@@ -1,4 +1,4 @@
-package com.mojang.minecraft.level;
+package com.mojang.minecraft.renderer;
 
 import org.lwjgl.opengl.GL11;
 
@@ -9,6 +9,7 @@ public class Tesselator {
     private boolean hasTexture = false;
     private boolean drawing = false;
 	public static Tesselator instance = new Tesselator();
+	private boolean noColor = false;
 
     public void init() {
         if (drawing) {
@@ -29,11 +30,11 @@ public class Tesselator {
     }
 
     public void color(float r, float g, float b) {
-        this.r = r;
-        this.g = g;
-        this.b = b;
-        this.hasColor = true;
-        GL11.glColor3f(r, g, b);
+	        this.r = r;
+	        this.g = g;
+	        this.b = b;
+	        this.hasColor = true;
+	        GL11.glColor3f(r, g, b);
     }
     
 	public void vertexUV(float x, float y, float z, float u, float v) {
@@ -63,4 +64,11 @@ public class Tesselator {
         hasColor = false;
         hasTexture = false;
     }
+    
+	public void color(int c) {
+		float r = (float)(c >> 16 & 255) / 255.0F;
+		float g = (float)(c >> 8 & 255) / 255.0F;
+		float b = (float)(c & 255) / 255.0F;
+		this.color(r, g, b);
+	}
 }

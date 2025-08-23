@@ -1,13 +1,16 @@
 package com.mojang.minecraft;
 
 import com.mojang.minecraft.character.Zombie;
+import com.mojang.minecraft.gui.Font;
 import com.mojang.minecraft.level.Chunk;
-import com.mojang.minecraft.level.Frustum;
 import com.mojang.minecraft.level.Level;
 import com.mojang.minecraft.level.LevelRenderer;
-import com.mojang.minecraft.level.Tesselator;
 import com.mojang.minecraft.level.tile.Tile;
 import com.mojang.minecraft.particle.ParticleEngine;
+import com.mojang.minecraft.phys.AABB;
+import com.mojang.minecraft.renderer.Frustum;
+import com.mojang.minecraft.renderer.Tesselator;
+import com.mojang.minecraft.renderer.Textures;
 import com.mojang.util.GLAllocation;
 import net.lax1dude.eaglercraft.EagRuntime;
 
@@ -25,8 +28,9 @@ import net.lax1dude.eaglercraft.internal.EnumPlatformType;
 import net.lax1dude.eaglercraft.internal.buffer.FloatBuffer;
 import net.lax1dude.eaglercraft.internal.buffer.IntBuffer;
 
-public class RubyDung implements Runnable {
-	private static final boolean FULLSCREEN_MODE = false;
+public class Minecraft implements Runnable {
+	public static final String VERSION_STRING = "0.0.11a";
+	private boolean fullscreen = false;
 	private int width;
 	private int height;
 	private int lastWidth;
@@ -39,11 +43,26 @@ public class RubyDung implements Runnable {
 	private Player player;
 	private int paintTexture = 1;
 	private ParticleEngine particleEngine;
-    private ArrayList<Zombie> zombies = new ArrayList();
+	private ArrayList<Entity> entities = new ArrayList();
+	public volatile boolean pause = false;
+	private int yMouseAxis = 1;
+	public Textures textures;
+	private Font font;
+	private int editMode = 0;
+	private volatile boolean running = false;
+	private String fpsString = "";
+	private boolean mouseGrabbed = false;
 	private IntBuffer viewportBuffer = GLAllocation.createIntBuffer(16);
 	private IntBuffer selectBuffer = GLAllocation.createIntBuffer(2000);
 	private HitResult hitResult = null;
 	FloatBuffer lb = GLAllocation.createFloatBuffer(16);
+	
+	public Minecraft(int width, int height, boolean fullscreen) {
+		this.width = width;
+		this.height = height;
+		this.fullscreen = fullscreen;
+		this.textures = new Textures();
+	}
 
 	public void init() throws LWJGLException, IOException {
 		int col0 = 16710650;
@@ -53,66 +72,109 @@ public class RubyDung implements Runnable {
 		float fb = 1.0F;
 		this.fogColor0.put(new float[]{(float)(col0 >> 16 & 255) / 255.0F, (float)(col0 >> 8 & 255) / 255.0F, (float)(col0 & 255) / 255.0F, 1.0F}).flip();
 		this.fogColor1.put(new float[]{(float)(col1 >> 16 & 255) / 255.0F, (float)(col1 >> 8 & 255) / 255.0F, (float)(col1 & 255) / 255.0F, 1.0F}).flip();
+		if(this.fullscreen) {
+			Display.toggleFullscreen();
+			this.width = Display.getWidth();
+			this.height = Display.getHeight();
+		} else {
+			this.width = Display.getWidth();
+			this.height = Display.getHeight();
+		}
+
+		Display.setTitle("Minecraft 0.0.11a");
+
 		Display.create();
 		Keyboard.create();
 		Mouse.create();
-		this.width = Display.getWidth();
-		this.height = Display.getHeight();
+		this.checkGlError("Pre startup");
 		GL11.glEnable(GL11.GL_TEXTURE_2D);
 		GL11.glShadeModel(GL11.GL_SMOOTH);
 		GL11.glClearColor(fr, fg, fb, 0.0F);
 		GL11.glClearDepth(1.0D);
 		GL11.glEnable(GL11.GL_DEPTH_TEST);
 		GL11.glDepthFunc(GL11.GL_LEQUAL);
-//		GL11.glEnable(GL11.GL_ALPHA_TEST);
-//		GL11.glAlphaFunc(GL11.GL_GREATER, 0.5F);
+		GL11.glEnable(GL11.GL_ALPHA_TEST);
+		GL11.glAlphaFunc(GL11.GL_GREATER, 0.0F);
 		GL11.glMatrixMode(GL11.GL_PROJECTION);
 		GL11.glLoadIdentity();
 		GL11.glMatrixMode(GL11.GL_MODELVIEW);
+		this.checkGlError("Startup");
 		this.level = new Level(256, 256, 64);
-		this.levelRenderer = new LevelRenderer(this.level);
+		this.levelRenderer = new LevelRenderer(this.level, this.textures);
 		this.player = new Player(this.level);
-		this.particleEngine = new ParticleEngine(this.level);
-        Mouse.setGrabbed(true);
-		for(int i = 0; i < 10; ++i) {
-			Zombie zombie = new Zombie(this.level, 128.0F, 0.0F, 128.0F);
-			zombie.resetPos();
-			this.zombies.add(zombie);
+		this.particleEngine = new ParticleEngine(this.level, this.textures);
+		this.font = new Font("/default.gif", this.textures);
+		for(int imgData = 0; imgData < 10; ++imgData) {
+			Zombie e = new Zombie(this.level, this.textures, 128.0F, 0.0F, 128.0F);
+			e.resetPos();
+			this.entities.add(e);
 		}
+		
+		IntBuffer var11 = GLAllocation.createIntBuffer(256);
+		var11.clear().limit(256);
+		this.grabMouse();
+
+		this.checkGlError("Post startup");
+	}
+	
+	private void checkGlError(String string) {
+		int errorCode = GL11.glGetError();
+		if(errorCode != 0) {
+			String errorString = GLU.gluErrorString(errorCode);
+			System.out.println("########## GL ERROR ##########");
+			System.out.println("@ " + string);
+			System.out.println(errorCode + ": " + errorString);
+			System.exit(0);
+		}
+
 	}
 
 	public void destroy() {
-		this.level.save();
+		try {
+			this.level.save();
+		} catch (Exception var2) {
+		}
 		EagRuntime.destroy();
 	}
 
 	public void run() {
+		this.running = true;
 		try {
 			this.init();
 		} catch (Exception var9) {
-			System.out.println("Failed to start RubyDung");
-			throw new RuntimeException(var9);
+			System.out.println("Failed to start Minecraft");
+			return;
 		}
 
 		long lastTime = System.currentTimeMillis();
 		int frames = 0;
 
 		try {
-			while(!Display.isCloseRequested() && (EagRuntime.getPlatformType() != EnumPlatformType.DESKTOP || !Keyboard.isKeyDown(Keyboard.KEY_ESCAPE))) {
-				this.timer.advanceTime();
+			while(this.running) {
+				if(this.pause) {
+					Thread.sleep(100L);
+				} else {
+					if(Display.isCloseRequested()) {
+						this.stop();
+					}
 
-				for(int e = 0; e < this.timer.ticks; ++e) {
-					this.tick();
-				}
+					this.timer.advanceTime();
 
-				this.render(this.timer.a);
-				++frames;
+					for(int e = 0; e < this.timer.ticks; ++e) {
+						this.tick();
+					}
 
-				while(System.currentTimeMillis() >= lastTime + 1000L) {
-					System.out.println(frames + " fps, " + Chunk.updates);
-					Chunk.updates = 0;
-					lastTime += 1000L;
-					frames = 0;
+					this.checkGlError("Pre render");
+					this.render(this.timer.a);
+					this.checkGlError("Post render");
+					++frames;
+
+					while(System.currentTimeMillis() >= lastTime + 1000L) {
+						this.fpsString = frames + " fps, " + Chunk.updates + " chunk updates";
+						Chunk.updates = 0;
+						lastTime += 1000L;
+						frames = 0;
+					}
 				}
 			}
 		} catch (Exception var10) {
@@ -122,6 +184,72 @@ public class RubyDung implements Runnable {
 		}
 
 	}
+	
+	public void stop() {
+		this.running = false;
+	}
+
+	public void grabMouse() {
+		if(!this.mouseGrabbed) {
+			this.mouseGrabbed = true;
+			Mouse.setGrabbed(true);
+
+		}
+	}
+	
+	public void releaseMouse() {
+		if(this.mouseGrabbed) {
+			this.mouseGrabbed = false;
+			Mouse.setGrabbed(false);
+
+		}
+	}
+	
+	private void handleMouseClick() {
+		if(this.editMode == 0) {
+			if(this.hitResult != null) {
+				Tile x = Tile.tiles[this.level.getTile(this.hitResult.x, this.hitResult.y, this.hitResult.z)];
+				boolean y = this.level.setTile(this.hitResult.x, this.hitResult.y, this.hitResult.z, 0);
+				if(x != null && y) {
+					x.destroy(this.level, this.hitResult.x, this.hitResult.y, this.hitResult.z, this.particleEngine);
+				}
+			}
+		} else if(this.hitResult != null) {
+			int var5 = this.hitResult.x;
+			int var6 = this.hitResult.y;
+			int z = this.hitResult.z;
+			if(this.hitResult.f == 0) {
+				--var6;
+			}
+
+			if(this.hitResult.f == 1) {
+				++var6;
+			}
+
+			if(this.hitResult.f == 2) {
+				--z;
+			}
+
+			if(this.hitResult.f == 3) {
+				++z;
+			}
+
+			if(this.hitResult.f == 4) {
+				--var5;
+			}
+
+			if(this.hitResult.f == 5) {
+				++var5;
+			}
+
+			AABB aabb = Tile.tiles[this.paintTexture].getAABB(var5, var6, z);
+			if(aabb == null || this.isFree(aabb)) {
+				this.level.setTile(var5, var6, z, this.paintTexture);
+			}
+		}
+
+	}
+	
 	private int saveCountdown = 600;
 
 	private void levelSave() {
@@ -134,50 +262,89 @@ public class RubyDung implements Runnable {
 	    }
 	}
 	public void tick() {
-		while(Keyboard.next()) {
-			if(Keyboard.getEventKeyState()) {
-				if(Keyboard.getEventKey() == Keyboard.KEY_RETURN) {
-					this.level.save();
+		while(Mouse.next()) {
+			if(!this.mouseGrabbed && Mouse.getEventButtonState()) {
+				this.grabMouse();
+			} else {
+				if(Mouse.getEventButton() == 0 && Mouse.getEventButtonState()) {
+					this.handleMouseClick();
 				}
 
-				if(Keyboard.getEventKey() == Keyboard.KEY_1) {
-					this.paintTexture = 1;
-				}
-
-				if(Keyboard.getEventKey() == Keyboard.KEY_2) {
-					this.paintTexture = 3;
-				}
-
-				if(Keyboard.getEventKey() == Keyboard.KEY_3) {
-					this.paintTexture = 4;
-				}
-
-				if(Keyboard.getEventKey() == Keyboard.KEY_4) {
-					this.paintTexture = 5;
-				}
-				
-				if(Keyboard.getEventKey() == Keyboard.KEY_6) {
-					this.paintTexture = 6;
-				}
-
-				if(Keyboard.getEventKey() == Keyboard.KEY_G) {
-					this.zombies.add(new Zombie(this.level, this.player.x, this.player.y, this.player.z));
+				if(Mouse.getEventButton() == 1 && Mouse.getEventButtonState()) {
+					this.editMode = (this.editMode + 1) % 2;
 				}
 			}
 		}
 
-		this.level.tick();
-		this.particleEngine.tick();
+		while(true) {
+			do {
+				if(!Keyboard.next()) {
+					this.level.tick();
+					this.particleEngine.tick();
 
-		for(int i = 0; i < this.zombies.size(); ++i) {
-			((Zombie)this.zombies.get(i)).tick();
-			if(((Zombie)this.zombies.get(i)).removed) {
-				this.zombies.remove(i--);
+					for(int i = 0; i < this.entities.size(); ++i) {
+						((Entity)this.entities.get(i)).tick();
+						if(((Entity)this.entities.get(i)).removed) {
+							this.entities.remove(i--);
+						}
+					}
+
+					this.player.tick();
+		            levelSave();
+					return;
+				}
+			} while(!Keyboard.getEventKeyState());
+
+			if(Keyboard.getEventKey() == Keyboard.KEY_ESCAPE && (!this.fullscreen)) {
+				this.releaseMouse();
+			}
+
+			if(Keyboard.getEventKey() == Keyboard.KEY_RETURN) {
+				this.level.save();
+			}
+
+			if(Keyboard.getEventKey() == Keyboard.KEY_1) {
+				this.paintTexture = 1;
+			}
+
+			if(Keyboard.getEventKey() == Keyboard.KEY_2) {
+				this.paintTexture = 3;
+			}
+
+			if(Keyboard.getEventKey() == Keyboard.KEY_3) {
+				this.paintTexture = 4;
+			}
+
+			if(Keyboard.getEventKey() == Keyboard.KEY_4) {
+				this.paintTexture = 5;
+			}
+
+			if(Keyboard.getEventKey() == Keyboard.KEY_6) {
+				this.paintTexture = 6;
+			}
+
+			if(Keyboard.getEventKey() == Keyboard.KEY_Y) {
+				this.yMouseAxis *= -1;
+			}
+
+			if(Keyboard.getEventKey() == Keyboard.KEY_G) {
+				this.entities.add(new Zombie(this.level, this.textures, this.player.x, this.player.y, this.player.z));
 			}
 		}
+	}
+	
+	private boolean isFree(AABB aabb) {
+		if(this.player.bb.intersects(aabb)) {
+			return false;
+		} else {
+			for(int i = 0; i < this.entities.size(); ++i) {
+				if(((Entity)this.entities.get(i)).bb.intersects(aabb)) {
+					return false;
+				}
+			}
 
-		this.player.tick();
-		levelSave();
+			return true;
+		}
 	}
 
 	private void moveCameraToPlayer(float a) {
@@ -191,6 +358,8 @@ public class RubyDung implements Runnable {
 	}
 
 	private void setupCamera(float a) {
+		this.width = Display.getWidth();
+		this.height = Display.getHeight();
 		GL11.glMatrixMode(GL11.GL_PROJECTION);
 		GL11.glLoadIdentity();
 		GLU.gluPerspective(70.0F, (float)this.width / (float)this.height, 0.05F, 1000.0F);
@@ -262,84 +431,54 @@ public class RubyDung implements Runnable {
 	}
 
 	public void render(float a) {
-		float xo = (float)Mouse.getDX();
-		float yo = (float)Mouse.getDY();
-		this.player.turn(xo, yo);
+		if(!Display.isActive()) {
+			this.releaseMouse();
+		}
+
+		GL11.glViewport(0, 0, this.width, this.height);
+		if(this.mouseGrabbed) {
+			float frustum = 0.0F;
+			float i = 0.0F;
+			frustum = (float)Mouse.getDX();
+			i = (float)Mouse.getDY();
+
+			this.player.turn(frustum, i * (float)this.yMouseAxis);
+		}
+
+		this.checkGlError("Set viewport");
 		this.pick(a);
-		int var8;
-		while(Mouse.next()) {
-			if(Mouse.getEventButton() == 1 && Mouse.getEventButtonState() && this.hitResult != null) {
-				Tile frustum = Tile.tiles[this.level.getTile(this.hitResult.x, this.hitResult.y, this.hitResult.z)];
-				boolean i = this.level.setTile(this.hitResult.x, this.hitResult.y, this.hitResult.z, 0);
-				if(frustum != null && i) {
-					frustum.destroy(this.level, this.hitResult.x, this.hitResult.y, this.hitResult.z, this.particleEngine);
-				}
-			}
-
-			if(Mouse.getEventButton() == 0 && Mouse.getEventButtonState() && this.hitResult != null) {
-				int var7 = this.hitResult.x;
-				var8 = this.hitResult.y;
-				int zombie = this.hitResult.z;
-				if(this.hitResult.f == 0) {
-					--var8;
-				}
-
-				if(this.hitResult.f == 1) {
-					++var8;
-				}
-
-				if(this.hitResult.f == 2) {
-					--zombie;
-				}
-
-				if(this.hitResult.f == 3) {
-					++zombie;
-				}
-
-				if(this.hitResult.f == 4) {
-					--var7;
-				}
-
-				if(this.hitResult.f == 5) {
-					++var7;
-				}
-
-				this.level.setTile(var7, var8, zombie, this.paintTexture);
-			}
-		}
-
-
-		if (Display.wasResized()) {
-			this.width = Display.getWidth();
-			this.height = Display.getHeight();
-			GL11.glViewport(0, 0, this.width, this.height);
-		}
-
+		this.checkGlError("Picked");
 		GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_COLOR_BUFFER_BIT);
 		this.setupCamera(a);
+		this.checkGlError("Set up camera");
 		GL11.glEnable(GL11.GL_CULL_FACE);
-		Frustum var9 = Frustum.getFrustum();
+		Frustum var5 = Frustum.getFrustum();
 		this.levelRenderer.updateDirtyChunks(this.player);
+		this.checkGlError("Update chunks");
 		this.setupFog(0);
 		GL11.glEnable(GL11.GL_FOG);
 		this.levelRenderer.render(this.player, 0);
+		this.checkGlError("Rendered level");
 
-		Zombie var10;
-		for(var8 = 0; var8 < this.zombies.size(); ++var8) {
-			var10 = (Zombie)this.zombies.get(var8);
-			if(var10.isLit() && var9.isVisible(var10.bb)) {
-				((Zombie)this.zombies.get(var8)).render(a);
+		Entity zombie;
+		int var6;
+		for(var6 = 0; var6 < this.entities.size(); ++var6) {
+			zombie = (Entity)this.entities.get(var6);
+			if(zombie.isLit() && var5.isVisible(zombie.bb)) {
+				((Entity)this.entities.get(var6)).render(a);
 			}
 		}
 
+		this.checkGlError("Rendered entities");
 		this.particleEngine.render(this.player, a, 0);
+		this.checkGlError("Rendered particles");
 		this.setupFog(1);
 		this.levelRenderer.render(this.player, 1);
 
-		for(var8 = 0; var8 < this.zombies.size(); ++var8) {
-			var10 = (Zombie)this.zombies.get(var8);
-			if(!var10.isLit() && var9.isVisible(var10.bb)) {
-				((Zombie)this.zombies.get(var8)).render(a);
+		for(var6 = 0; var6 < this.entities.size(); ++var6) {
+			zombie = (Entity)this.entities.get(var6);
+			if(!zombie.isLit() && var5.isVisible(zombie.bb)) {
+				((Entity)this.entities.get(var6)).render(a);
 			}
 		}
 
@@ -347,13 +486,16 @@ public class RubyDung implements Runnable {
 		GL11.glDisable(GL11.GL_LIGHTING);
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
 		GL11.glDisable(GL11.GL_FOG);
+		this.checkGlError("Rendered rest");
 		if(this.hitResult != null) {
 			GL11.glDisable(GL11.GL_ALPHA_TEST);
-			this.levelRenderer.renderHit(this.hitResult);
+			this.levelRenderer.renderHit(this.hitResult, this.editMode, this.paintTexture);
 			GL11.glEnable(GL11.GL_ALPHA_TEST);
 		}
 
+		this.checkGlError("Rendered hit");
 		this.drawGui(a);
+		this.checkGlError("Rendered gui");
 		Display.update();
 	}
 	
@@ -367,6 +509,7 @@ public class RubyDung implements Runnable {
 		GL11.glMatrixMode(GL11.GL_MODELVIEW);
 		GL11.glLoadIdentity();
 		GL11.glTranslatef(0.0F, 0.0F, -200.0F);
+		this.checkGlError("GUI: Init");
 		GL11.glPushMatrix();
 		GL11.glTranslatef((float)(screenWidth - 16), 16.0F, 0.0F);
 		Tesselator t = Tesselator.instance;
@@ -375,7 +518,7 @@ public class RubyDung implements Runnable {
 		GL11.glRotatef(45.0F, 0.0F, 1.0F, 0.0F);
 		GL11.glTranslatef(-1.5F, 0.5F, -0.5F);
 		GL11.glScalef(-1.0F, -1.0F, 1.0F);
-		int id = Textures.loadTexture("/terrain.png", 9728);
+		int id = this.textures.loadTexture("/terrain.png", 9728);
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, id);
 		GL11.glEnable(GL11.GL_TEXTURE_2D);
 		t.init();
@@ -383,9 +526,13 @@ public class RubyDung implements Runnable {
 		t.flush();
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
 		GL11.glPopMatrix();
+		this.checkGlError("GUI: Draw selected");
+		this.font.drawShadow("0.0.11a", 2, 2, 16777215);
+		this.font.drawShadow(this.fpsString, 2, 12, 16777215);
+		this.checkGlError("GUI: Draw text");
 		int wc = screenWidth / 2;
 		int hc = screenHeight / 2;
-		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+		GL11.color(1.0F, 1.0F, 1.0F, 1.0F);
 		t.init();
 		t.vertex((float)(wc + 1), (float)(hc - 4), 0.0F);
 		t.vertex((float)(wc - 0), (float)(hc - 4), 0.0F);
@@ -396,8 +543,8 @@ public class RubyDung implements Runnable {
 		t.vertex((float)(wc - 4), (float)(hc + 1), 0.0F);
 		t.vertex((float)(wc + 5), (float)(hc + 1), 0.0F);
 		t.flush();
+		this.checkGlError("GUI: Draw crosshair");
 	}
-
 	private void setupFog(int i) {
 		if(i == 0) {
 			GL11.glFogi(GL11.GL_FOG_MODE, GL11.GL_EXP);
@@ -406,7 +553,7 @@ public class RubyDung implements Runnable {
 			GL11.glDisable(GL11.GL_LIGHTING);
 		} else if(i == 1) {
 			GL11.glFogi(GL11.GL_FOG_MODE, GL11.GL_EXP);
-			GL11.glFogf(GL11.GL_FOG_DENSITY, 0.06F);
+			GL11.glFogf(GL11.GL_FOG_DENSITY, 0.01F);
 			GL11.glFog(GL11.GL_FOG_COLOR, this.fogColor1);
 			GL11.glEnable(GL11.GL_LIGHTING);
 			GL11.glEnable(GL11.GL_COLOR_MATERIAL);

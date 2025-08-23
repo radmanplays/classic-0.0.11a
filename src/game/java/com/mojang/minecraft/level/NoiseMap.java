@@ -2,13 +2,13 @@ package com.mojang.minecraft.level;
 
 import java.util.Random;
 
-public class PerlinNoiseFilter {
+public class NoiseMap {
 	Random random = new Random();
 	int seed = this.random.nextInt();
 	int levels = 0;
 	int fuzz = 16;
 
-	public PerlinNoiseFilter(int levels) {
+	public NoiseMap(int levels) {
 		this.levels = levels;
 	}
 
