@@ -44,7 +44,6 @@ public class Minecraft implements Runnable {
 	private int paintTexture = 1;
 	private ParticleEngine particleEngine;
 	private ArrayList<Entity> entities = new ArrayList();
-	public volatile boolean pause = false;
 	private int yMouseAxis = 1;
 	public Textures textures;
 	private Font font;
@@ -152,9 +151,6 @@ public class Minecraft implements Runnable {
 
 		try {
 			while(this.running) {
-				if(this.pause) {
-					Thread.sleep(100L);
-				} else {
 					if(Display.isCloseRequested()) {
 						this.stop();
 					}
@@ -177,7 +173,6 @@ public class Minecraft implements Runnable {
 						frames = 0;
 					}
 				}
-			}
 		} catch (Exception var10) {
 			var10.printStackTrace();
 		} finally {
