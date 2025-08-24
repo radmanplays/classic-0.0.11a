@@ -81,6 +81,13 @@ public class Chunk {
 	    if (this.dirty) {
 	        this.rebuild();
 	    }
+	    
+	    if (layer == 1) {
+	        GL11.glEnable(GL11.GL_BLEND);
+	        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+	        GL11.glEnable(GL11.GL_ALPHA_TEST);
+	        GL11.glAlphaFunc(GL11.GL_GREATER, 0.1f);
+	    }
 
 		GL11.glCallList(this.lists + layer);
 	}
