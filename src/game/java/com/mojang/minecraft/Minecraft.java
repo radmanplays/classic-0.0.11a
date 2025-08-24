@@ -124,7 +124,8 @@ public class Minecraft implements Runnable {
 			System.out.println("########## GL ERROR ##########");
 			System.out.println("@ " + string);
 			System.out.println(errorCode + ": " + errorString);
-			System.exit(0);
+			throw new RuntimeException(errorCode + ": " + errorString);
+
 		}
 
 	}
