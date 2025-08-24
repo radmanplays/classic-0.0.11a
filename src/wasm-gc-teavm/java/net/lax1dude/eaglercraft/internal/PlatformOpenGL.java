@@ -19,6 +19,7 @@ package net.lax1dude.eaglercraft.internal;
 import java.util.Arrays;
 import java.util.List;
 
+import net.lax1dude.eaglercraft.opengl.EaglercraftGPU;
 import org.teavm.interop.Import;
 import org.teavm.jso.JSBody;
 import org.teavm.jso.core.JSArray;
@@ -262,6 +263,15 @@ public class PlatformOpenGL {
 		_wglDeleteVertexArraysN(((OpenGLObjects.VertexArrayGL)objId).ptr);
 	}
 
+	public static final void _wglLightModelAmbient(float r, float g, float b) {
+		IProgramGL program = EaglercraftGPU.currentShaderProgram;
+		if(program != null) {
+			IUniformGL loc = _wglGetUniformLocation(program, "u_lightsAmbient3f");
+			if(loc != null) {
+				_wglUniform3f(loc, r, g, b);
+			}
+		}
+	}
 	@Import(module = "platformOpenGL", name = "glDeleteVertexArrays")
 	static native void _wglDeleteVertexArraysN(WebGLVertexArray objId);
 
