@@ -795,7 +795,7 @@ public class PlatformOpenGL {
 	}
 	
 	public static final void _wglLightModelAmbient(float r, float g, float b) {
-	    IProgramGL program = EaglercraftGPU.getCurrentProgram();
+	    IProgramGL program = EaglercraftGPU.currentShaderProgram;
 	    if(program != null) {
 	        IUniformGL loc = _wglGetUniformLocation(program, "u_lightsAmbient3f");
 	        if(loc != null) {
