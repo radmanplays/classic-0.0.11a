@@ -7,7 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import com.mojang.minecraft.RubyDung;
+import com.mojang.minecraft.Minecraft;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.ILogRedirector;
 import org.apache.logging.log4j.LogManager;

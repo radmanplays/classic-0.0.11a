@@ -22,7 +22,7 @@ import org.teavm.interop.Import;
 import org.teavm.jso.JSObject;
 import org.teavm.jso.browser.Window;
 
-import com.mojang.minecraft.RubyDung;
+import com.mojang.minecraft.Minecraft;
 
 import net.lax1dude.eaglercraft.Display;
 import net.lax1dude.eaglercraft.EagRuntime;
