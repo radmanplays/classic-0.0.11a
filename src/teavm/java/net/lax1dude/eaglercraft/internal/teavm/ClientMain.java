@@ -209,7 +209,8 @@ public class ClientMain {
 			systemOut.println("ClientMain: [INFO] launching eaglercraftx main thread");
 
 			try {
-				new RubyDung().run();
+				Minecraft minecraft = new Minecraft(854, 480, false);
+				(new Thread(minecraft)).run();
 			}catch(Throwable t) {
 				systemErr.println("ClientMain: [ERROR] unhandled exception caused main thread to exit");
 				EagRuntime.debugPrintStackTraceToSTDERR(t);

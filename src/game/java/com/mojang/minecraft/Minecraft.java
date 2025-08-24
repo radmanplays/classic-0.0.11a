@@ -358,8 +358,6 @@ public class Minecraft implements Runnable {
 	}
 
 	private void setupCamera(float a) {
-		this.width = Display.getWidth();
-		this.height = Display.getHeight();
 		GL11.glMatrixMode(GL11.GL_PROJECTION);
 		GL11.glLoadIdentity();
 		GLU.gluPerspective(70.0F, (float)this.width / (float)this.height, 0.05F, 1000.0F);
@@ -434,7 +432,10 @@ public class Minecraft implements Runnable {
 		if(!Display.isActive()) {
 			this.releaseMouse();
 		}
-
+		if (Display.wasResized()) {
+			this.width = Display.getWidth();
+			this.height = Display.getHeight();
+		}
 		GL11.glViewport(0, 0, this.width, this.height);
 		if(this.mouseGrabbed) {
 			float frustum = 0.0F;
