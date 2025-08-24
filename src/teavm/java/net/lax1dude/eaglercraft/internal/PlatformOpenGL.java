@@ -794,6 +794,14 @@ public class PlatformOpenGL {
 		return glesVers >= 300;
 	}
 	
+	public static final void _wglLightModelAmbient(IProgramGL program, float r, float g, float b) {
+	    IUniformGL loc = _wglGetUniformLocation(program, "u_lightsAmbient3f");
+	    if(loc != null) {
+	        _wglUniform3f(loc, r, g, b);
+	    }
+	}
+
+	
 	public static final boolean checkTextureLODCapable() {
 		return glesVers >= 300 || hasEXTShaderTextureLOD;
 	}

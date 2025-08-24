@@ -1,20 +1,130 @@
 package net.lax1dude.eaglercraft.internal;
 
-import net.lax1dude.eaglercraft.internal.buffer.EaglerLWJGLAllocator;
-import net.lax1dude.eaglercraft.internal.buffer.ByteBuffer;
-import net.lax1dude.eaglercraft.internal.buffer.FloatBuffer;
-import net.lax1dude.eaglercraft.internal.buffer.IntBuffer;
-
-import static org.lwjgl.opengles.GLES30.*;
-import static org.lwjgl.opengles.ANGLEInstancedArrays.*;
-import static org.lwjgl.opengles.EXTInstancedArrays.*;
-import static org.lwjgl.opengles.EXTTextureStorage.*;
-import static org.lwjgl.opengles.OESVertexArrayObject.*;
+import static org.lwjgl.opengles.ANGLEInstancedArrays.glDrawArraysInstancedANGLE;
+import static org.lwjgl.opengles.ANGLEInstancedArrays.glDrawElementsInstancedANGLE;
+import static org.lwjgl.opengles.ANGLEInstancedArrays.glVertexAttribDivisorANGLE;
+import static org.lwjgl.opengles.EXTInstancedArrays.glDrawArraysInstancedEXT;
+import static org.lwjgl.opengles.EXTInstancedArrays.glDrawElementsInstancedEXT;
+import static org.lwjgl.opengles.EXTInstancedArrays.glVertexAttribDivisorEXT;
+import static org.lwjgl.opengles.EXTTextureStorage.glTexStorage2DEXT;
+import static org.lwjgl.opengles.GLES20.GL_EXTENSIONS;
+import static org.lwjgl.opengles.GLES20.glActiveTexture;
+import static org.lwjgl.opengles.GLES20.glAttachShader;
+import static org.lwjgl.opengles.GLES20.glBindAttribLocation;
+import static org.lwjgl.opengles.GLES20.glBindBuffer;
+import static org.lwjgl.opengles.GLES20.glBindFramebuffer;
+import static org.lwjgl.opengles.GLES20.glBindRenderbuffer;
+import static org.lwjgl.opengles.GLES20.glBindTexture;
+import static org.lwjgl.opengles.GLES20.glBlendColor;
+import static org.lwjgl.opengles.GLES20.glBlendEquation;
+import static org.lwjgl.opengles.GLES20.glBlendFunc;
+import static org.lwjgl.opengles.GLES20.glBlendFuncSeparate;
+import static org.lwjgl.opengles.GLES20.glBufferData;
+import static org.lwjgl.opengles.GLES20.glCheckFramebufferStatus;
+import static org.lwjgl.opengles.GLES20.glClear;
+import static org.lwjgl.opengles.GLES20.glClearColor;
+import static org.lwjgl.opengles.GLES20.glClearDepthf;
+import static org.lwjgl.opengles.GLES20.glColorMask;
+import static org.lwjgl.opengles.GLES20.glCompileShader;
+import static org.lwjgl.opengles.GLES20.glCopyTexSubImage2D;
+import static org.lwjgl.opengles.GLES20.glCreateProgram;
+import static org.lwjgl.opengles.GLES20.glCreateShader;
+import static org.lwjgl.opengles.GLES20.glCullFace;
+import static org.lwjgl.opengles.GLES20.glDeleteBuffers;
+import static org.lwjgl.opengles.GLES20.glDeleteFramebuffers;
+import static org.lwjgl.opengles.GLES20.glDeleteProgram;
+import static org.lwjgl.opengles.GLES20.glDeleteRenderbuffers;
+import static org.lwjgl.opengles.GLES20.glDeleteShader;
+import static org.lwjgl.opengles.GLES20.glDeleteTextures;
+import static org.lwjgl.opengles.GLES20.glDepthFunc;
+import static org.lwjgl.opengles.GLES20.glDepthMask;
+import static org.lwjgl.opengles.GLES20.glDetachShader;
+import static org.lwjgl.opengles.GLES20.glDisable;
+import static org.lwjgl.opengles.GLES20.glDisableVertexAttribArray;
+import static org.lwjgl.opengles.GLES20.glDrawArrays;
+import static org.lwjgl.opengles.GLES20.glDrawElements;
+import static org.lwjgl.opengles.GLES20.glEnable;
+import static org.lwjgl.opengles.GLES20.glEnableVertexAttribArray;
+import static org.lwjgl.opengles.GLES20.glFramebufferRenderbuffer;
+import static org.lwjgl.opengles.GLES20.glFramebufferTexture2D;
+import static org.lwjgl.opengles.GLES20.glGenBuffers;
+import static org.lwjgl.opengles.GLES20.glGenFramebuffers;
+import static org.lwjgl.opengles.GLES20.glGenRenderbuffers;
+import static org.lwjgl.opengles.GLES20.glGenTextures;
+import static org.lwjgl.opengles.GLES20.glGenerateMipmap;
+import static org.lwjgl.opengles.GLES20.glGetAttribLocation;
+import static org.lwjgl.opengles.GLES20.glGetError;
+import static org.lwjgl.opengles.GLES20.glGetInteger;
+import static org.lwjgl.opengles.GLES20.glGetProgramInfoLog;
+import static org.lwjgl.opengles.GLES20.glGetProgrami;
+import static org.lwjgl.opengles.GLES20.glGetShaderInfoLog;
+import static org.lwjgl.opengles.GLES20.glGetShaderi;
+import static org.lwjgl.opengles.GLES20.glGetString;
+import static org.lwjgl.opengles.GLES20.glGetUniformLocation;
+import static org.lwjgl.opengles.GLES20.glLineWidth;
+import static org.lwjgl.opengles.GLES20.glLinkProgram;
+import static org.lwjgl.opengles.GLES20.glPixelStorei;
+import static org.lwjgl.opengles.GLES20.glPolygonOffset;
+import static org.lwjgl.opengles.GLES20.glRenderbufferStorage;
+import static org.lwjgl.opengles.GLES20.glShaderSource;
+import static org.lwjgl.opengles.GLES20.glTexParameterf;
+import static org.lwjgl.opengles.GLES20.glTexParameteri;
+import static org.lwjgl.opengles.GLES20.glUniform1f;
+import static org.lwjgl.opengles.GLES20.glUniform1i;
+import static org.lwjgl.opengles.GLES20.glUniform2f;
+import static org.lwjgl.opengles.GLES20.glUniform2i;
+import static org.lwjgl.opengles.GLES20.glUniform3f;
+import static org.lwjgl.opengles.GLES20.glUniform3i;
+import static org.lwjgl.opengles.GLES20.glUniform4f;
+import static org.lwjgl.opengles.GLES20.glUniform4i;
+import static org.lwjgl.opengles.GLES20.glUseProgram;
+import static org.lwjgl.opengles.GLES20.glVertexAttribPointer;
+import static org.lwjgl.opengles.GLES20.glViewport;
+import static org.lwjgl.opengles.GLES20.nglBufferData;
+import static org.lwjgl.opengles.GLES20.nglBufferSubData;
+import static org.lwjgl.opengles.GLES20.nglReadPixels;
+import static org.lwjgl.opengles.GLES20.nglTexImage2D;
+import static org.lwjgl.opengles.GLES20.nglTexSubImage2D;
+import static org.lwjgl.opengles.GLES20.nglUniformMatrix2fv;
+import static org.lwjgl.opengles.GLES20.nglUniformMatrix3fv;
+import static org.lwjgl.opengles.GLES20.nglUniformMatrix4fv;
+import static org.lwjgl.opengles.GLES30.glBindBufferRange;
+import static org.lwjgl.opengles.GLES30.glBindVertexArray;
+import static org.lwjgl.opengles.GLES30.glBlitFramebuffer;
+import static org.lwjgl.opengles.GLES30.glDeleteQueries;
+import static org.lwjgl.opengles.GLES30.glDeleteVertexArrays;
+import static org.lwjgl.opengles.GLES30.glDrawArraysInstanced;
+import static org.lwjgl.opengles.GLES30.glDrawBuffers;
+import static org.lwjgl.opengles.GLES30.glDrawElementsInstanced;
+import static org.lwjgl.opengles.GLES30.glFramebufferTextureLayer;
+import static org.lwjgl.opengles.GLES30.glGenQueries;
+import static org.lwjgl.opengles.GLES30.glGenVertexArrays;
+import static org.lwjgl.opengles.GLES30.glGetUniformBlockIndex;
+import static org.lwjgl.opengles.GLES30.glReadBuffer;
+import static org.lwjgl.opengles.GLES30.glTexStorage2D;
+import static org.lwjgl.opengles.GLES30.glUniformBlockBinding;
+import static org.lwjgl.opengles.GLES30.glVertexAttribDivisor;
+import static org.lwjgl.opengles.GLES30.nglTexImage3D;
+import static org.lwjgl.opengles.GLES30.nglUniformMatrix3x2fv;
+import static org.lwjgl.opengles.GLES30.nglUniformMatrix4x2fv;
+import static org.lwjgl.opengles.GLES30.nglUniformMatrix4x3fv;
+import static org.lwjgl.opengles.OESVertexArrayObject.glBindVertexArrayOES;
+import static org.lwjgl.opengles.OESVertexArrayObject.glDeleteVertexArraysOES;
+import static org.lwjgl.opengles.OESVertexArrayObject.glGenVertexArraysOES;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import org.lwjgl.BufferUtils;
+import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengles.GLESCapabilities;
+
+import net.lax1dude.eaglercraft.EagRuntime;
+import net.lax1dude.eaglercraft.internal.buffer.ByteBuffer;
+import net.lax1dude.eaglercraft.internal.buffer.EaglerLWJGLAllocator;
+import net.lax1dude.eaglercraft.internal.buffer.FloatBuffer;
+import net.lax1dude.eaglercraft.internal.buffer.IntBuffer;
+import net.lax1dude.eaglercraft.opengl.RealOpenGLEnums;
 
 /**
  * Copyright (c) 2022-2023 lax1dude, ayunami2000. All Rights Reserved.
@@ -829,5 +939,16 @@ public class PlatformOpenGL {
 	public static final void enterVAOEmulationHook() {
 
 	}
+
+	public static final void _wglLightModelAmbient(float r, float g, float b) {
+		int program = glGetInteger(RealOpenGLEnums.GL_CURRENT_PROGRAM);
+	    if(program != 0) {
+	        int loc = glGetUniformLocation(program, "u_lightsAmbient3f");
+	        if(loc >= 0) {
+	            glUniform3f(loc, r, g, b);
+	        }
+	    }
+	}
+
 
 }

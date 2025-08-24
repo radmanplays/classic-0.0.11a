@@ -212,6 +212,18 @@ public class EaglercraftGPU extends GlStateManager {
 		FixedFunctionPipeline.setupDisplayList(dp);
 		currentList = null;
 	}
+	
+	public static void glLightModel(int pname, FloatBuffer params) {
+	    if(pname == RealOpenGLEnums.GL_LIGHT_MODEL_AMBIENT) {
+	        float r = params.get(0);
+	        float g = params.get(1);
+	        float b = params.get(2);
+	        PlatformOpenGL._wglLightModelAmbient(r, g, b);
+	    } else {
+	        throw new UnsupportedOperationException("glLightModel: only GL_LIGHT_MODEL_AMBIENT is supported");
+	    }
+	}
+
 
 	public static void uploadListDirect(int target, ByteBuffer buffer, int attrib, int mode, int count) {
 		DisplayList dp = displayListsInitialized.get(target);
