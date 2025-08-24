@@ -715,7 +715,7 @@ public class EaglercraftGPU extends GlStateManager {
 		}
 	}
 
-	static IProgramGL currentShaderProgram = null;
+	public static IProgramGL currentShaderProgram = null;
 
 	public static void bindGLShaderProgram(IProgramGL prog) {
 		if (currentShaderProgram != prog) {
