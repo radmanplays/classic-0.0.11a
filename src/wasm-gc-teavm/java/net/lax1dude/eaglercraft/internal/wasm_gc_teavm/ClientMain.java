@@ -26,7 +26,7 @@ import net.lax1dude.eaglercraft.internal.ContextLostError;
 import net.lax1dude.eaglercraft.internal.PlatformApplication;
 import net.lax1dude.eaglercraft.internal.PlatformRuntime;
 import net.lax1dude.eaglercraft.internal.wasm_gc_teavm.opts.JSEaglercraftXOptsRoot;
-import com.mojang.minecraft.RubyDung;
+import com.mojang.minecraft.Minecraft;
 import net.lax1dude.eaglercraft.EagRuntime;
 
 public class ClientMain {
@@ -85,7 +85,8 @@ public class ClientMain {
 			systemOut.println("ClientMain: [INFO] launching eaglercraftx main thread");
 
 			try {
-				new RubyDung().run();
+				Minecraft minecraft = new Minecraft(854, 480, false);
+				(new Thread(minecraft)).run();
 			}catch(ContextLostError t) {
 				systemErr.println("ClientMain: [ERROR] webgl context lost!");
 				PlatformRuntime.showContextLostScreen(EagRuntime.getStackTrace(t));
