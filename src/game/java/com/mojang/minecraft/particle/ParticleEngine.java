@@ -44,7 +44,7 @@ public class ParticleEngine {
 			float za2 = xa * (float)Math.sin((double)player.xRot * Math.PI / 180.0D);
 			float ya = (float)Math.cos((double)player.xRot * Math.PI / 180.0D);
 			Tesselator t = Tesselator.instance;
-			GL11.color(0.8F, 0.8F, 0.8F, 1.0F);
+			GL11.glColor4f(0.8F, 0.8F, 0.8F, 1.0F);
 			t.init();
 
 			for(int i = 0; i < this.particles.size(); ++i) {
@@ -56,7 +56,7 @@ public class ParticleEngine {
 
 			t.flush();
 			GL11.glDisable(GL11.GL_TEXTURE_2D);
-			GL11.color(1.0F, 1.0F, 1.0F, 1.0F);
+			GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		}
 	}
 }

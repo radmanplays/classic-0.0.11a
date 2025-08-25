@@ -107,10 +107,10 @@ public class LevelRenderer implements LevelListener {
 
 	public void renderHit(HitResult h, int mode, int tileType) {
 		Tesselator t = Tesselator.instance;
-		GL11.pushMatrix();
 		GL11.glEnable(GL11.GL_BLEND);
+		GL11.glEnable(GL11.GL_ALPHA_TEST);
 		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
-		GL11.color(1.0F, 1.0F, 1.0F, ((float)Math.sin((double)System.currentTimeMillis() / 100.0D) * 0.2F + 0.4F) * 0.5F);
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, ((float)Math.sin((double)System.currentTimeMillis() / 100.0D) * 0.2F + 0.4F) * 0.5F);
 		if(mode == 0) {
 			t.init();
 
@@ -122,7 +122,7 @@ public class LevelRenderer implements LevelListener {
 		} else {
 			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 			float var10 = (float)Math.sin((double)System.currentTimeMillis() / 100.0D) * 0.2F + 0.8F;
-			GL11.color(var10, var10, var10, (float)Math.sin((double)System.currentTimeMillis() / 200.0D) * 0.2F + 0.5F);
+			GL11.glColor4f(var10, var10, var10, (float)Math.sin((double)System.currentTimeMillis() / 200.0D) * 0.2F + 0.5F);
 			GL11.glEnable(GL11.GL_TEXTURE_2D);
 			int id = this.textures.loadTexture("/terrain.png", 9728);
 			GL11.glBindTexture(GL11.GL_TEXTURE_2D, id);
@@ -154,14 +154,15 @@ public class LevelRenderer implements LevelListener {
 			}
 
 			t.init();
+			t.noColor();
 			Tile.tiles[tileType].render(t, this.level, 0, x, y, z);
 			Tile.tiles[tileType].render(t, this.level, 1, x, y, z);
 			t.flush();
 			GL11.glDisable(GL11.GL_TEXTURE_2D);
 		}
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		GL11.glDisable(GL11.GL_BLEND);
-		GL11.color(1.0F, 1.0F, 1.0F, 1.0F);
-		GL11.popMatrix();
+		GL11.glDisable(GL11.GL_ALPHA_TEST);
 	}
 	
 	public void setDirty(int x0, int y0, int z0, int x1, int y1, int z1) {
